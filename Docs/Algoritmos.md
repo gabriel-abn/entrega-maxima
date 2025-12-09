@@ -17,35 +17,42 @@ Cada algoritmo implementado resolve um desses problemas específicos.
 ## 1. Dijkstra - Roteamento de Menor Custo
 
 ### Problema de Negócio
+
 **"Qual a rota mais econômica para transportar produtos do hub A para o hub B?"**
 
 Uma transportadora precisa enviar mercadorias entre dois centros de distribuição. Existem múltiplas rotas possíveis, cada uma com custos diferentes (combustível, pedágios, desgaste). O objetivo é encontrar a rota que minimiza o custo total.
 
 ### Entrada
+
 - Grafo direcionado com custos nas arestas
 - Hub de origem
 - Hub de destino
 
 ### Saída
+
 - Custo total mínimo
 - Sequência de hubs no caminho ótimo
 - Indicação de sucesso/falha
 
 ### Algoritmo
+
 **Dijkstra com fila de prioridade**
 
 **Passos:**
+
 1. Inicializa distâncias: origem = 0, demais = ∞
 2. Usa fila de prioridade para processar vértices por distância
 3. Para cada vértice, relaxa arestas de saída
 4. Reconstrói caminho usando predecessores
 
 **Complexidade:** O(E + V log V)
+
 - E = número de arestas
 - V = número de vértices
 - log V do PriorityQueue
 
 ### Implementação
+
 ```csharp
 public static DijkstraResult FindShortestPath(
     LogisticsGraph graph, 
@@ -81,36 +88,35 @@ public static DijkstraResult FindShortestPath(
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que Dijkstra foi escolhido para este problema?
-Outras alternativas consideradas?
-Vantagens e desvantagens?
-```
+**Por que este?** Como os custos financeiros (pesos) são sempre não-negativos, o Dijkstra é a escolha padrão da indústria. Ele é mais eficiente que o Bellman-Ford e garante a solução ótima.
 
 ---
 
 ## 2. Edmonds-Karp - Capacidade Máxima de Escoamento
 
 ### Problema de Negócio
+
 **"Quantas toneladas conseguimos transportar simultaneamente da fábrica para o centro de distribuição final?"**
 
 A empresa precisa saber a capacidade máxima da rede para planejar produção e estoques. Cada rota tem limite de carga. É necessário encontrar o fluxo máximo respeitando essas restrições.
 
 ### Entrada
+
 - Grafo direcionado com capacidades nas arestas
 - Hub fonte (origem)
 - Hub sumidouro (destino)
 
 ### Saída
+
 - Fluxo máximo em toneladas
 - Arestas gargalo (min-cut) que limitam o fluxo
 
 ### Algoritmo
+
 **Edmonds-Karp (Ford-Fulkerson com BFS)**
 
 **Passos:**
+
 1. Cria grafo residual (capacidade - fluxo)
 2. Usa BFS para encontrar caminho aumentante
 3. Calcula gargalo do caminho (mínima capacidade residual)
@@ -118,11 +124,13 @@ A empresa precisa saber a capacidade máxima da rede para planejar produção e 
 5. Repete até não haver mais caminhos
 
 **Complexidade:** O(V E²)
+
 - V = vértices
 - E = arestas
 - BFS é O(E), executado O(VE) vezes no pior caso
 
 ### Implementação
+
 ```csharp
 public static MaxFlowResult CalculateMaxFlow(
     LogisticsGraph graph, 
@@ -170,35 +178,34 @@ public static MaxFlowResult CalculateMaxFlow(
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que Edmonds-Karp (Ford-Fulkerson com BFS)?
-Alternativas como Push-Relabel ou Dinic foram consideradas?
-Trade-offs entre simplicidade e performance?
-```
+**Por que este?** Este algoritmo "empurra" fluxo pela rede até não encontrar mais caminhos disponíveis. Além de dar o valor total (toneladas), o teorema "Max-Flow Min-Cut" nos permite identificar exatamente quais arestas estão saturadas (o gargalo da rede), respondendo à segunda parte do problema.
 
 ---
 
 ## 3. Kruskal - Expansão da Rede (MST)
 
 ### Problema de Negócio
+
 **"Como expandir a rede conectando todos os hubs com custo mínimo de instalação?"**
 
 A empresa quer expandir operações para novos hubs. Precisa decidir quais rotas construir para conectar todos os pontos, minimizando o investimento em infraestrutura.
 
 ### Entrada
+
 - Grafo (tratado como não-direcionado)
 - Custos de instalação nas arestas
 
 ### Saída
+
 - Custo total de instalação
 - Lista de rotas a serem construídas
 
 ### Algoritmo
+
 **Kruskal com Union-Find**
 
 **Passos:**
+
 1. Ordena arestas por custo crescente
 2. Para cada aresta em ordem:
    - Verifica se conecta componentes diferentes (Union-Find)
@@ -207,11 +214,13 @@ A empresa quer expandir operações para novos hubs. Precisa decidir quais rotas
 3. Termina quando tem V-1 arestas
 
 **Complexidade:** O(E log E)
+
 - Ordenação: O(E log E)
 - Union-Find: O(α(n)) amortizado por operação
 - Total dominado pela ordenação
 
 ### Implementação
+
 ```csharp
 public static MSTResult FindMinimumSpanningTree(LogisticsGraph graph)
 {
@@ -243,35 +252,34 @@ public static MSTResult FindMinimumSpanningTree(LogisticsGraph graph)
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que Kruskal e não Prim?
-Quando Prim seria preferível?
-Vantagens do Union-Find?
-```
+**Por que este?** Para a instalação de fibra, queremos uma sub-rede que toque todos os vértices com a soma mínima dos pesos das arestas.
 
 ---
 
 ## 4. Welsh-Powell - Agendamento de Manutenções
 
 ### Problema de Negócio
+
 **"Como agendar manutenções em rotas que compartilham recursos sem conflitos?"**
 
 Rotas que compartilham hubs não podem sofrer manutenção simultaneamente (recurso limitado). É necessário agrupar rotas em turnos de modo que rotas no mesmo turno não compartilhem recursos.
 
 ### Entrada
+
 - Grafo de rotas
 - Lista de conflitos entre rotas (pares de rotas que compartilham hubs)
 
 ### Saída
+
 - Número mínimo de turnos necessários
 - Agrupamento de rotas por turno
 
 ### Algoritmo
+
 **Welsh-Powell (Greedy Graph Coloring)**
 
 **Passos:**
+
 1. Constrói grafo de conflitos (rotas = vértices, conflitos = arestas)
 2. Ordena rotas por grau decrescente (número de conflitos)
 3. Para cada rota:
@@ -280,10 +288,12 @@ Rotas que compartilham hubs não podem sofrer manutenção simultaneamente (recu
 4. Agrupa rotas por cor
 
 **Complexidade:** O(V²)
+
 - Construção do grafo de conflitos: O(E²) no pior caso
 - Coloração: O(V²)
 
 ### Implementação
+
 ```csharp
 public static ColoringResult ScheduleMaintenanceShifts(
     LogisticsGraph graph, 
@@ -328,38 +338,36 @@ public static ColoringResult ScheduleMaintenanceShifts(
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que algoritmo guloso?
-Coloração ótima é NP-completo - qual aproximação?
-Welsh-Powell vs outras heurísticas?
-```
-
----
+Aqui, criamos um "Grafo de Conflitos" auxiliar, onde cada nó é uma tarefa de manutenção e uma aresta liga duas tarefas que não podem ocorrer ao mesmo tempo. O objetivo é pintar o grafo com o número mínimo de cores (número cromático). Cada cor representa um turno. Como encontrar o número cromático exato é um problema NP-Difícil, usamos a heurística de Welsh-Powell, que é muito eficiente e dá resultados excelentes para fins operacionais.
 
 ## 5. Fleury - Rota de Inspeção Euleriana
 
 ### Problema de Negócio
+
 **"Como inspecionar todas as rotas da rede visitando cada uma exatamente uma vez?"**
 
 Equipes de manutenção precisam inspecionar todas as rotas. O objetivo é encontrar um percurso que visite cada rota exatamente uma vez, minimizando deslocamentos desnecessários.
 
 ### Entrada
+
 - Grafo direcionado
 
 ### Saída
+
 - Indicação se caminho/ciclo euleriano existe
 - Sequência de arestas do caminho (se existir)
 
 ### Condições de Existência
+
 **Ciclo Euleriano:** Todos os vértices têm `in-degree = out-degree`  
 **Caminho Euleriano:** Exatamente um vértice com `out-degree = in-degree + 1`
 
 ### Algoritmo
+
 **Fleury (evita pontes)**
 
 **Passos:**
+
 1. Verifica se grafo satisfaz condições eulerianas
 2. Escolhe vértice inicial apropriado
 3. A cada passo:
@@ -369,9 +377,11 @@ Equipes de manutenção precisam inspecionar todas as rotas. O objetivo é encon
 4. Continua até visitar todas as arestas
 
 **Complexidade:** O(E²)
+
 - Para cada aresta (E), verifica se é ponte: O(E)
 
 ### Implementação
+
 ```csharp
 public static EulerianResult FindEulerianPath(LogisticsGraph graph)
 {
@@ -418,35 +428,34 @@ public static EulerianResult FindEulerianPath(LogisticsGraph graph)
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que Fleury e não Hierholzer?
-Trade-off: O(E²) vs O(E) - vale a intuitividade?
-Quando Hierholzer seria melhor?
-```
+**Por que este?** Verifica-se o grau de entrada e saída dos vértices. Se o grafo for conexo e equilibrado, existe um ciclo Euleriano. O algoritmo encontra esse caminho em tempo linear.
 
 ---
 
 ## 6. Hamiltoniano - Rota de Inspeção de Todos os Hubs
 
 ### Problema de Negócio
+
 **"Como visitar todos os hubs da rede exatamente uma vez e retornar à origem?"**
 
 Auditoria precisa visitar todos os centros de distribuição. O objetivo é encontrar uma rota que passe por cada hub exatamente uma vez e retorne ao ponto inicial.
 
 ### Entrada
+
 - Grafo direcionado
 - Timeout em segundos (proteção)
 
 ### Saída
+
 - Indicação se ciclo hamiltoniano existe
 - Sequência de vértices do ciclo (se encontrado)
 
 ### Algoritmo
+
 **Backtracking com Timeout**
 
 **Passos:**
+
 1. Inicia do primeiro vértice
 2. Recursivamente tenta estender caminho:
    - Marca vértice como visitado
@@ -459,10 +468,12 @@ Auditoria precisa visitar todos os centros de distribuição. O objetivo é enco
 4. Timeout protege contra explosão combinatória
 
 **Complexidade:** O(V!) - Exponencial (NP-completo)
+
 - Sem otimizações: testa todas permutações
 - Com poda: ainda exponencial no pior caso
 
 ### Implementação
+
 ```csharp
 public static HamiltonianResult FindHamiltonianCycle(
     LogisticsGraph graph, 
@@ -526,14 +537,7 @@ private static bool BacktrackHamiltonian(/* ... */)
 
 ### Motivação da Escolha
 
-**[Espaço para justificativa do aluno]**
-
-```
-Por que backtracking simples?
-Otimizações consideradas (branch-and-bound, programação dinâmica)?
-Trade-off entre simplicidade e eficiência?
-Por que timeout é essencial?
-```
+**Por que este?** Diferente do cenário A, determinar se existe um caminho que visita cada cidade exatamente uma vez é computacionalmente complexo (NP-Completo). Para grafos pequenos, o Backtracking funciona. Para grafos grandes, teremos que usar aproximações.
 
 ---
 
@@ -551,17 +555,21 @@ Por que timeout é essencial?
 ## Estruturas de Dados Especializadas
 
 ### Union-Find (Disjoint Set Union)
+
 **Usado em:** Kruskal  
 **Otimizações:**
+
 - Path compression: O(α(n)) por Find
 - Union by rank: Árvores balanceadas
 
 ### Priority Queue
+
 **Usado em:** Dijkstra  
 **Implementação:** Binary heap .NET  
 **Complexidade:** O(log n) por operação
 
 ### Hash Sets e Dictionaries
+
 **Usado em:** Todos os algoritmos  
 **Complexidade:** O(1) médio para busca/inserção
 
