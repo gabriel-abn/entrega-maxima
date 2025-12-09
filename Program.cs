@@ -2,6 +2,7 @@ using LogisticsOptimization.Models;
 using LogisticsOptimization.Algorithms;
 using LogisticsOptimization.Algorithms.Results;
 using LogisticsOptimization.Utils;
+using System.Text;
 
 namespace LogisticsOptimization;
 
@@ -9,58 +10,67 @@ class Program
 {
 	private static LogisticsGraph? _currentGraph;
 	private static string? _currentFileName;
+	private static QueryLogger _logger = new QueryLogger();
 
 	static void Main(string[] args)
 	{
 		Console.Clear();
 		PrintWelcomeBanner();
 
-		while (true)
+		try
 		{
-			PrintMenu();
-
-			Console.Write("\nEscolha uma opção: ");
-			string? choice = Console.ReadLine();
-
-			Console.WriteLine();
-
-			switch (choice)
+			while (true)
 			{
-				case "1":
-					LoadGraphFromFile();
-					break;
-				case "2":
-					RunDijkstra();
-					break;
-				case "3":
-					RunEdmondsKarp();
-					break;
-				case "4":
-					RunKruskal();
-					break;
-				case "5":
-					RunWelshPowell();
-					break;
-				case "6":
-					RunEulerian();
-					break;
-				case "7":
-					RunHamiltonian();
-					break;
-				case "8":
-					Console.WriteLine("Encerrando o sistema...");
-					return;
-				default:
-					OutputFormatter.PrintError("Opção inválida. Tente novamente.");
-					break;
-			}
+				PrintMenu();
 
-			if (choice != "8")
-			{
-				Console.WriteLine("\nPressione qualquer tecla para continuar...");
-				Console.ReadKey();
-				Console.Clear();
+				Console.Write("\nEscolha uma opção: ");
+				string? choice = Console.ReadLine();
+
+				Console.WriteLine();
+
+				switch (choice)
+				{
+					case "1":
+						LoadGraphFromFile();
+						break;
+					case "2":
+						RunDijkstra();
+						break;
+					case "3":
+						RunEdmondsKarp();
+						break;
+					case "4":
+						RunKruskal();
+						break;
+					case "5":
+						RunWelshPowell();
+						break;
+					case "6":
+						RunEulerian();
+						break;
+					case "7":
+						RunHamiltonian();
+						break;
+					case "8":
+						Console.WriteLine("Encerrando o sistema...");
+						_logger.Dispose();
+						return;
+					default:
+						OutputFormatter.PrintError("Opção inválida. Tente novamente.");
+						break;
+				}
+
+				if (choice != "8")
+				{
+					Console.WriteLine("\nPressione qualquer tecla para continuar...");
+					Console.ReadKey();
+					Console.Clear();
+				}
 			}
+		}
+		finally
+		{
+			_logger.Dispose();
 		}
 	}
 
@@ -125,12 +135,21 @@ class Program
 			_currentGraph = DimacsParser.LoadFromFile(filePath);
 			_currentFileName = Path.GetFileName(filePath);
 
+			_logger.StartLogging(filePath);
+			_logger.LogGraphInfo(_currentGraph.NodeCount, _currentGraph.EdgeCount);
+
 			OutputFormatter.PrintSuccess($"Grafo carregado com sucesso!");
 			OutputFormatter.PrintGraphInfo(_currentGraph);
+			
+			if (_logger.IsActive)
+			{
+				OutputFormatter.PrintInfo($"Log ativo: logs/{Path.GetFileNameWithoutExtension(filePath)}_{DateTime.Now:yyyyMMdd}.log");
+			}
 		}
 		catch (Exception ex)
 		{
 			OutputFormatter.PrintError($"Erro ao carregar arquivo: {ex.Message}");
+			_logger.LogError($"Erro ao carregar arquivo: {ex.Message}");
 			_currentGraph = null;
 			_currentFileName = null;
 		}
@@ -156,6 +175,12 @@ class Program
 
 		var result = DijkstraAlgorithm.FindShortestPath(_currentGraph!, source, target);
 		OutputFormatter.PrintDijkstraResult(result);
+
+		string logResult = FormatDijkstraForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Dijkstra - Roteamento de Menor Custo",
+			$"Origem: {source}, Destino: {target}",
+			logResult);
 	}
 
 	static void RunEdmondsKarp()
@@ -178,6 +203,12 @@ class Program
 
 		var result = EdmondsKarpAlgorithm.CalculateMaxFlow(_currentGraph!, source, sink);
 		OutputFormatter.PrintMaxFlowResult(result);
+
+		string logResult = FormatMaxFlowForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Edmonds-Karp - Capacidade Máxima de Escoamento",
+			$"Origem: {source}, Destino: {sink}",
+			logResult);
 	}
 
 	static void RunKruskal()
@@ -186,6 +217,12 @@ class Program
 
 		var result = KruskalAlgorithm.FindMinimumSpanningTree(_currentGraph!);
 		OutputFormatter.PrintMSTResult(result);
+
+		string logResult = FormatMSTForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Kruskal - Expansão da Rede (MST)",
+			"",
+			logResult);
 	}
 
 	static void RunWelshPowell()
@@ -198,6 +235,12 @@ class Program
 		var result = WelshPowellAlgorithm.ScheduleMaintenanceShifts(_currentGraph!, conflicts);
 
 		OutputFormatter.PrintColoringResult(result);
+
+		string logResult = FormatColoringForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Welsh-Powell - Agendamento de Manutenções",
+			$"Conflitos detectados: {conflicts.Count}",
+			logResult);
 	}
 
 	static void RunEulerian()
@@ -206,6 +249,12 @@ class Program
 
 		var result = EulerianAlgorithm.FindEulerianPath(_currentGraph!);
 		OutputFormatter.PrintEulerianResult(result);
+
+		string logResult = FormatEulerianForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Euleriano (Fleury) - Rota de Inspeção",
+			"",
+			logResult);
 	}
 
 	static void RunHamiltonian()
@@ -230,6 +279,12 @@ class Program
 
 		var result = HamiltonianAlgorithm.FindHamiltonianCycle(_currentGraph!, timeout);
 		OutputFormatter.PrintHamiltonianResult(result);
+
+		string logResult = FormatHamiltonianForLog(result);
+		_logger.LogAlgorithmExecution(
+			"Hamiltoniano (Backtracking) - Rota de Inspeção",
+			$"Timeout: {timeout}s",
+			logResult);
 	}
 
 	static bool CheckGraphLoaded()
@@ -240,5 +295,66 @@ class Program
 			return false;
 		}
 		return true;
+	}
+
+	static string FormatDijkstraForLog(DijkstraResult result)
+	{
+		if (!result.Success)
+			return "Nenhum caminho encontrado";
+
+		var sb = new StringBuilder();
+		sb.AppendLine($"Custo Total: R$ {result.TotalCost:F2}");
+		sb.AppendLine($"Número de saltos: {result.Path.Count}");
+		sb.Append("Caminho: ");
+		foreach (var edge in result.Path)
+		{
+			sb.Append($"{edge.Source.Id} → ");
+		}
+		if (result.Path.Count > 0)
+			sb.Append(result.Path.Last().Target.Id);
+		return sb.ToString();
+	}
+
+	static string FormatMaxFlowForLog(MaxFlowResult result)
+	{
+		var sb = new StringBuilder();
+		sb.AppendLine($"Fluxo Máximo: {result.MaxFlow:F2} toneladas");
+		sb.AppendLine($"Arestas críticas (gargalos): {result.BottleneckEdges.Count}");
+		return sb.ToString();
+	}
+
+	static string FormatMSTForLog(MSTResult result)
+	{
+		var sb = new StringBuilder();
+		sb.AppendLine($"Custo Total: R$ {result.TotalCost:F2}");
+		sb.AppendLine($"Número de conexões: {result.Edges.Count}");
+		return sb.ToString();
+	}
+
+	static string FormatColoringForLog(ColoringResult result)
+	{
+		var sb = new StringBuilder();
+		sb.AppendLine($"Número de turnos necessários: {result.Shifts.Count}");
+		foreach (var shift in result.Shifts.OrderBy(s => s.Key))
+		{
+			sb.AppendLine($"Turno {shift.Key}: {shift.Value.Count} rotas");
+		}
+		return sb.ToString();
+	}
+
+	static string FormatEulerianForLog(EulerianResult result)
+	{
+		if (!result.IsPossible)
+			return "Caminho/Ciclo euleriano não encontrado";
+
+		return $"Caminho euleriano encontrado com {result.Path.Count} arestas";
+	}
+
+	static string FormatHamiltonianForLog(HamiltonianResult result)
+	{
+		if (!result.IsPossible)
+			return "Ciclo hamiltoniano não encontrado";
+
+		return $"Ciclo hamiltoniano encontrado visitando {result.Cycle.Count - 1} vértices";
 	}
 }
