@@ -37,7 +37,7 @@ O sistema modela a rede logística como um **Grafo Direcionado e Ponderado**, on
 - **Saída:** Número mínimo de turnos e atribuições
 
 ### 5. Rota de Inspeção
-- **Euleriano (Hierholzer):** Percorrer todas as rotas sem repetições
+- **Euleriano (Fleury):** Percorrer todas as rotas sem repetições
 - **Hamiltoniano (Backtracking):** Visitar todos os hubs exatamente uma vez
 - **Saída:** Viabilidade e sequência (se possível)
 

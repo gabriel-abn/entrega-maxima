@@ -43,7 +43,7 @@ public static class EulerianAlgorithm
             return result;
         }
 
-        var path = HierholzerAlgorithm(graph, startNode);
+        var path = FleuryAlgorithm(graph, startNode);
 
         if (path != null && path.Count == graph.EdgeCount)
         {
@@ -54,52 +54,112 @@ public static class EulerianAlgorithm
         return result;
     }
 
-    private static List<Edge>? HierholzerAlgorithm(LogisticsGraph graph, int startNode)
+    private static List<Edge>? FleuryAlgorithm(LogisticsGraph graph, int startNode)
     {
-        var remainingEdges = new Dictionary<int, List<Edge>>();
-        foreach (var node in graph.GetAllNodes())
+        var workingGraph = graph.Clone();
+        var path = new List<Edge>();
+        var currentNode = startNode;
+
+        while (workingGraph.EdgeCount > 0)
         {
-            remainingEdges[node.Id] = new List<Edge>(graph.GetOutgoingEdges(node.Id));
-        }
-
-        var circuit = new List<Edge>();
-        var stack = new Stack<int>();
-        stack.Push(startNode);
-
-        while (stack.Count > 0)
-        {
-            int current = stack.Peek();
-
-            if (remainingEdges[current].Count > 0)
+            var outgoingEdges = workingGraph.GetOutgoingEdges(currentNode);
+            
+            if (outgoingEdges.Count == 0)
             {
-                var edge = remainingEdges[current][0];
-                remainingEdges[current].RemoveAt(0);
-                
-                stack.Push(edge.Target.Id);
+                break;
+            }
+
+            Edge? chosenEdge = null;
+
+            if (outgoingEdges.Count == 1)
+            {
+                chosenEdge = outgoingEdges[0];
             }
             else
             {
-                if (stack.Count > 1)
+                foreach (var edge in outgoingEdges)
                 {
-                    stack.Pop();
-                    int prev = stack.Peek();
-                    
-                    var edge = graph.GetOutgoingEdges(prev)
-                        .FirstOrDefault(e => e.Target.Id == current);
-                    
-                    if (edge != null)
+                    if (!IsBridge(workingGraph, edge))
                     {
-                        circuit.Insert(0, edge);
+                        chosenEdge = edge;
+                        break;
                     }
                 }
-                else
+
+                if (chosenEdge == null)
                 {
-                    stack.Pop();
+                    chosenEdge = outgoingEdges[0];
+                }
+            }
+
+            path.Add(graph.GetOutgoingEdges(currentNode)
+                .First(e => e.Source.Id == chosenEdge.Source.Id && 
+                           e.Target.Id == chosenEdge.Target.Id));
+
+            currentNode = chosenEdge.Target.Id;
+            RemoveEdge(workingGraph, chosenEdge);
+        }
+
+        return path;
+    }
+
+    private static bool IsBridge(LogisticsGraph graph, Edge edge)
+    {
+        int reachableBeforeCount = CountReachableNodes(graph, edge.Source.Id);
+        
+        var tempGraph = graph.Clone();
+        RemoveEdge(tempGraph, edge);
+        
+        int reachableAfterCount = CountReachableNodes(tempGraph, edge.Source.Id);
+        
+        return reachableAfterCount < reachableBeforeCount;
+    }
+
+    private static int CountReachableNodes(LogisticsGraph graph, int startNode)
+    {
+        var visited = new HashSet<int>();
+        var queue = new Queue<int>();
+
+        queue.Enqueue(startNode);
+        visited.Add(startNode);
+
+        while (queue.Count > 0)
+        {
+            int current = queue.Dequeue();
+
+            foreach (var edge in graph.GetOutgoingEdges(current))
+            {
+                if (!visited.Contains(edge.Target.Id))
+                {
+                    visited.Add(edge.Target.Id);
+                    queue.Enqueue(edge.Target.Id);
+                }
+            }
+
+            foreach (var edge in graph.GetIncomingEdges(current))
+            {
+                if (!visited.Contains(edge.Source.Id))
+                {
+                    visited.Add(edge.Source.Id);
+                    queue.Enqueue(edge.Source.Id);
                 }
             }
         }
 
-        return circuit;
+        return visited.Count;
+    }
+
+    private static void RemoveEdge(LogisticsGraph graph, Edge edgeToRemove)
+    {
+        var edges = graph.GetOutgoingEdges(edgeToRemove.Source.Id);
+        var edgeFound = edges.FirstOrDefault(e => 
+            e.Source.Id == edgeToRemove.Source.Id && 
+            e.Target.Id == edgeToRemove.Target.Id);
+        
+        if (edgeFound != null)
+        {
+            edges.Remove(edgeFound);
+        }
     }
 
     private static bool IsWeaklyConnected(LogisticsGraph graph)
